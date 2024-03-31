@@ -1,7 +1,7 @@
 #!/bin/bash
-
-LOAD_DIR= # path to the converted llama checkpoint in megatron format
-SAVE_DIR= # path to save the converted EE LLM checkpoint
+BASE_PATH=/workspace
+LOAD_DIR=${BASE_PATH}/model_ckpts/llama2-7b_hf-to-meg_tp1_pp1 # path to the converted llama checkpoint in megatron format
+SAVE_DIR=${BASE_PATH}/model_ckpts/llama2-7b_hf-to-meg_ee_tp1_pp1 # path to save the converted EE LLM checkpoint
 
 LOAD_ITER=1
 CUR_DIR=$(cd $(dirname "$0") && pwd)
@@ -28,15 +28,15 @@ MEGATRON_ROOT_PATH=$(cd "$CUR_DIR/../../.." && pwd)
 #     --megatron-path $MEGATRON_ROOT_PATH
 
 ## add an embedding-norm-mlp exit every 1/8 depth
-python ${MEGATRON_ROOT_PATH}/tools/checkpoint/checkpoint_converter.py \
-    --load-dir $LOAD_DIR \
-    --save-dir $SAVE_DIR \
-    --load-iteration $LOAD_ITER \
-    --use-exit-norm \
-    --use-exit-mlp \
-    --conversion-type add-exit \
-    --add-exit-layer-nums 5 10 15 20 25 30 35 40 \
-    --megatron-path $MEGATRON_ROOT_PATH
+# python ${MEGATRON_ROOT_PATH}/tools/checkpoint/checkpoint_converter.py \
+#     --load-dir $LOAD_DIR \
+#     --save-dir $SAVE_DIR \
+#     --load-iteration $LOAD_ITER \
+#     --use-exit-norm \
+#     --use-exit-mlp \
+#     --conversion-type add-exit \
+#     --add-exit-layer-nums 5 10 15 20 25 30 35 40 \
+#     --megatron-path $MEGATRON_ROOT_PATH
 
 ## add an embedding-norm-layer exit every 1/8 depth
 # python ${MEGATRON_ROOT_PATH}/tools/checkpoint/checkpoint_converter.py \
@@ -88,12 +88,12 @@ python ${MEGATRON_ROOT_PATH}/tools/checkpoint/checkpoint_converter.py \
 # For llama2 7B model (32 layers)
 
 ## add an embedding-norm-mlp exit every 1/8 depth
-# python ${MEGATRON_ROOT_PATH}/tools/checkpoint/checkpoint_converter.py \
-#     --load-dir $LOAD_DIR \
-#     --save-dir $SAVE_DIR \
-#     --load-iteration $LOAD_ITER \
-#     --use-exit-norm \
-#     --use-exit-mlp \
-#     --conversion-type add-exit \
-#     --add-exit-layer-nums 4 8 12 16 20 24 28 32 \
-#     --megatron-path $MEGATRON_ROOT_PATH
+python ${MEGATRON_ROOT_PATH}/tools/checkpoint/checkpoint_converter.py \
+    --load-dir $LOAD_DIR \
+    --save-dir $SAVE_DIR \
+    --load-iteration $LOAD_ITER \
+    --use-exit-norm \
+    --use-exit-mlp \
+    --conversion-type add-exit \
+    --add-exit-layer-nums 4 8 12 16 20 24 28 32 \
+    --megatron-path $MEGATRON_ROOT_PATH

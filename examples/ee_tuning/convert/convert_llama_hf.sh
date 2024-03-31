@@ -1,9 +1,9 @@
 #!/bin/bash
-
-LOAD_DIR= # path to the llama2 huggingface checkpoint dir
-SAVE_DIR= # path to save the converted megatron checkpoint
+BASE_PATH=/workspace
+LOAD_DIR=${BASE_PATH}/model_ckpts/llama2-7b-hf # path to the llama2 huggingface checkpoint dir
+SAVE_DIR=${BASE_PATH}/model_ckpts/llama2-7b_hf-to-meg_tp1_pp1 # path to save the converted megatron checkpoint
 TP=1  # target tensor parallel size
-PP=4  # target pipeline parallel size
+PP=1  # target pipeline parallel size
 
 TOKENIZER_PATH=${LOAD_DIR}/tokenizer.model
 
@@ -16,6 +16,7 @@ python $MEGATRON_ROOT_PATH/tools/checkpoint/util.py \
     --save-dir $SAVE_DIR \
     --loader llama2_hf \
     --saver megatron \
+    --no-checking \
     --target-tensor-parallel-size $TP \
     --target-pipeline-parallel-size $PP \
     --megatron-path $MEGATRON_ROOT_PATH \

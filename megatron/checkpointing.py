@@ -493,6 +493,21 @@ def load_args_from_checkpoint(args, load_arg='load'):
         else:
             print_rank_0(f"Checkpoint did not provide arguments {arg_name}")
 
+    def _set_arg_manually(arg_name, old_arg_name=None, force=False, value=0):
+        if not force and getattr(args, arg_name, None) is not None:
+            return
+
+        if old_arg_name is not None:
+            checkpoint_value = getattr(checkpoint_args, old_arg_name, None)
+        else:
+            checkpoint_value = getattr(checkpoint_args, arg_name, None)
+
+        if checkpoint_value is not None:
+            print_rank_0(f"Setting {arg_name} to {value} from checkpoint")
+            setattr(args, arg_name, value)
+        else:
+            print_rank_0(f"Checkpoint did not provide arguments {arg_name}")
+
     _set_arg('num_layers')
     _set_arg('hidden_size')
     _set_arg('ffn_hidden_size')
@@ -501,7 +516,8 @@ def load_args_from_checkpoint(args, load_arg='load'):
     _set_arg('num_query_groups', force=True)
     _set_arg('group_query_attention', force=True)
     _set_arg('kv_channels')
-    _set_arg('max_position_embeddings')
+    #_set_arg('max_position_embeddings')
+    _set_arg_manually('max_position_embeddings', value=5000)
     _set_arg('position_embedding_type', force=True)
     _set_arg('add_position_embedding', force=True)
     _set_arg('use_rotary_position_embeddings', force=True)

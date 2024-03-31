@@ -114,7 +114,6 @@ def set_mlp_state(args, layer, hf_layer):
 
 def set_layer_state(args, model, hf_model, layer_idx):
     '''Set transformer layer params.'''
-
     layer = model.language_model.encoder.layers[layer_idx]
     hf_layer = hf_model.model.layers[layer_idx]
 
@@ -139,9 +138,11 @@ def load_checkpoint_to_model(args):
     # Set model state.
     set_preprocess_state(args, model, hf_model)
     set_postprocess_state(args, model, hf_model)
+    print("set_layer_state_start")
+    print("num_layers",args.num_layers)
     for layer_idx in tqdm(range(args.num_layers), "set layer states"):
         set_layer_state(args, model, hf_model, layer_idx)
-
+    print("set_layer_state_end")
     return model
 
 

@@ -90,13 +90,17 @@ import sys
 
 def load_plugin(plugin_type, name):
     module_name = f"{plugin_type}_{name}"
+    # plugin = importlib.import_module("loader_llama2_hf")
     try:
         plugin = importlib.import_module(module_name)
     except ModuleNotFoundError:
+        print("can't find:",module_name)
         module_name = name
         try:
             plugin = importlib.import_module(module_name)
         except ModuleNotFoundError:
+            print("can't find:",module_name)
+            print(sys.path)
             sys.exit(f"Unable to load {plugin_type} plugin {name}. Exiting.")
 
     if not hasattr(plugin, 'add_arguments'):

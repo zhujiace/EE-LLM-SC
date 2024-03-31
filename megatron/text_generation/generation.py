@@ -516,7 +516,7 @@ def generate_with_pipelined_early_exit_and_return_on_first_stage(
         termination_id = args.eos_id
     else:
         termination_id = tokenizer.eod
-
+    
     # ===================
     # Pre-allocate memory
     # ===================
@@ -569,8 +569,8 @@ def generate_with_pipelined_early_exit_and_return_on_first_stage(
                 max_log_prob, token_id =  torch.max(log_probs[:, -1, :], dim=1)
                 token = tokenizer.detokenize([int(token_id[-1])])
                 if print_max_prob:
-                    print(f"layer final: token [{token}], prob {float(torch.exp(max_log_prob[-1]))}")
-                inference_params.has_early_exited = max_log_prob[-1] >= inference_params.early_exit_thres
+                    print(f"layer final: token [{token}], prob {float(torch.exp(max_log_prob[-1]))}, token_id: {token_id[-1]} - {token_id}")
+                inference_params.has_early_exited = max_log_prob[-1] >= inference_params.early_exit_thres 
                 new_sample = sample(last_token_logits,
                                     top_k=top_k,
                                     top_p=top_p,
@@ -586,6 +586,7 @@ def generate_with_pipelined_early_exit_and_return_on_first_stage(
                 started = lengths <= context_length
                 # Update the tokens.
                 tokens[started, context_length] = new_sample[started]
+                
                 # Pick the tokens that we need to get the log
                 # probabilities for. Note that next input token is
                 # the token which we selected in the current logits,
@@ -613,7 +614,18 @@ def generate_with_pipelined_early_exit_and_return_on_first_stage(
             prev_context_length = context_length
             inference_params.is_first_step = False
 
-            # Check if all the sequences have hit the termination_id.
+            done = torch.tensor(False, device='cuda:0')
+            if mpu.is_pipeline_first_stage():
+                # print(f'token:{tokens[0, context_length-2:context_length+1]}')
+                target_tensor = torch.tensor([13, 13, 13], device='cuda:0')  # 16492-Question
+                if tokens[0, context_length-3:context_length].equal(target_tensor):
+                    done = torch.tensor(True, device='cuda:0')
+                    generated_sequence_lengths = context_length
+            done = broadcast_from_first_pipeline_stage(1, torch.uint8, tensor=done)
+            if done:
+                # print('find the end!!!!!')
+                break
+            # # Check if all the sequences have hit the termination_id.
             # done = None
             # if mpu.is_pipeline_first_stage():
             #     # TODO(rprenger) These stopping methods are tokenizer dependent
@@ -644,10 +656,10 @@ def generate_with_pipelined_early_exit_and_return_on_first_stage(
     # Update the length of based on max generated length.
     # ===================================================
 
-    # tokens = tokens[:, :(context_length + 1)]
-    # if mpu.is_pipeline_last_stage():
-    #     if return_output_log_probs:
-    #         output_log_probs = output_log_probs[:, :context_length]
+    tokens = tokens[:, :(context_length)]
+    if mpu.is_pipeline_last_stage():
+        if return_output_log_probs:
+            output_log_probs = output_log_probs[:, :context_length]
 
     # ======================================
     # Broadcast to the first pipeline stage.

@@ -4,6 +4,7 @@
 
 
 import torch
+import time
 import traceback
 from megatron.core import mpu
 from .communication import broadcast_float_list

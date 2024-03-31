@@ -7,6 +7,7 @@ import asyncio
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 from megatron.text_generation import generate_and_post_process
+import numpy as np
 
 
 GENERATE_NUM = 0
@@ -42,7 +43,7 @@ class MegatronGenerate(Resource):
         start_time = time.time()
         response, response_seg, response_logprobs, _ = \
             generate_and_post_process(
-            self.model,
+            self.model,                             
             prompts=req['prompts'],
             tokens_to_generate=req['tokens_to_generate'],
             echo_prompts=req['echo_prompts'],
@@ -63,16 +64,17 @@ class MegatronGenerate(Resource):
             exit_layers=req['exit_layers'])
         end_time = time.time()
         print(f"Response(use {end_time - start_time}s): " + str(response))
+        # print(response_logprobs)
         return {
             "text": response,
-            "segments": response_seg,
-            "logprobs": response_logprobs,
+            # "segments": response_seg,
+            # "logprobs": response_logprobs,
             "requst_time": end_time - start_time
             }
 
     def put(self):
         raw_req = request.get_json()
-
+        # print("input:",raw_req)
         if not "prompts" in raw_req:
             return "prompts argument required", 400
         
@@ -261,7 +263,7 @@ class MegatronGenerate(Resource):
 
         if not no_log:
             print("request IP: " + str(request.remote_addr))
-            print(json.dumps(raw_req),flush=True)
+            # print(json.dumps(raw_req),flush=True)
             print("start time: ", datetime.datetime.now())
         try:
             result = self.loop.run_until_complete(self.generate(raw_req))

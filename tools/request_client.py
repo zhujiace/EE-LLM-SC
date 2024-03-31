@@ -33,6 +33,7 @@ def request(
         if print_max_prob:
             data["print_max_prob"] = True
         start_time = time.time()
+        print(json.dumps(data))
         response = requests.put(URL, headers=HEADER, data=json.dumps(data))
         end_time = time.time()
         print("Request:-------------------------------------------------")
@@ -62,7 +63,7 @@ def main(
 if __name__ == "__main__":
     main(
         "tools/prompt_example.jsonl",
-        tokens_to_generate=50,
+        tokens_to_generate=150,
         use_early_exit=True,
         early_exit_thres=1.0,
         print_max_prob=True,
