@@ -8,3 +8,5 @@ slurm*
 logs
 .vscode
 .DS_Store
+*.log
+*.out
