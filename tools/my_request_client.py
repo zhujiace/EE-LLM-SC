@@ -199,7 +199,7 @@ def request(
                 # print(result)
                 text = result['text'][0]
                 token_num.append(result['token'])
-                latency.append(end_time - start_time)
+                latency.append(result['requst_time'])
                 if prompt_type=="COT":
                     answer = extract_answer(text)
                 elif prompt_type=="PAL":
@@ -294,7 +294,6 @@ def main(
                 print('Error',e)
             scores.append(score)
             print(f'Accuracy - {sum(scores) / len(scores)}')
-            # dm.write(f'Accuracy - {sum(scores) / len(scores)}')
         
     
 
