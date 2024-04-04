@@ -81,10 +81,10 @@ def generate_and_post_process(model,
             assert(tokens_to_generate == 0)
             assert(mpu.get_pipeline_model_parallel_world_size() == 1)
             return prompts_plus_generations, prompts_plus_generations_segments, \
-            output_log_probs, tokens, logits
+            output_log_probs, tokens, lengths, logits
         else:
             return prompts_plus_generations, prompts_plus_generations_segments, \
-                output_log_probs, tokens
+                output_log_probs, tokens, lengths
 
     return None
 

@@ -7,6 +7,7 @@ from collections import Counter
 import os
 import sys
 import func_timeout
+from scipy import integrate, stats
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
@@ -114,6 +115,38 @@ def safe_execute(code_string: str, keys=None, use_pot=False, maxtime=5):
     
     return ans
 
+def confidence_criteria(answers : list, conf_thresh : int = None):
+    if len(answers) == 0:
+        return {
+        'most_common' : None,
+        'prob' : -1,
+        'stop' : False,
+        }
+    most_common = Counter(answers).most_common(2)
+    if len(most_common) == 1:
+        a, b = most_common[0][1], 0
+    else:
+        a, b= most_common[0][1], most_common[1][1]
+    a = float(a)
+    b = float(b)
+    return_dict = {
+        'most_common' : most_common[0][0],
+        'prob' : -1,
+        'stop' : False,
+    }
+        
+    try:
+        prob =  integrate.quad(lambda x : x**(a) * (1-x)**(b), 0.5, 1)[0] / integrate.quad(lambda x : x**(a) * (1-x)**(b), 0, 1)[0]
+    except Exception as e:
+        # print error message
+        print(f"Error during numerical integration: {e}")
+        return_dict['stop'] = False
+        return_dict['prob'] = -1
+        return return_dict
+    return_dict['prob'] = prob
+    return_dict['stop'] = prob >= conf_thresh
+    return return_dict
+
 def request(
     prompts,
     prompt_type="COT",
@@ -129,6 +162,7 @@ def request(
     results = {}
     gens = []
     answers = []
+    token_num = []
     length = len(prompts)
     for i in range(length):
         for gen_id in range(max_gens):
@@ -162,11 +196,8 @@ def request(
             result = response.json()
             try:
                 # print(result)
-                # for t in result['text']:
-                #     print(t)
                 text = result['text'][0]
-                # parse
-                # print(text)
+                token_num.append(result['token'])
                 if prompt_type=="COT":
                     answer = extract_answer(text)
                 elif prompt_type=="PAL":
@@ -174,24 +205,31 @@ def request(
                     answer = safe_execute(code)
                     answer = floatify_ans(answer)
                 print(f"ans = {answer}, target = {target}")
-                result['answer'] = answer
+                # result['answer'] = answer
                 if answer != None and answer != "":
                     answers.append(answer)
+                #confidence = confidence_criteria(answers,1)
+                #print(confidence)
             except Exception as e:
                 print(response)
-            if 'segments' in result:
-                del result['segments']
             # gens.append(result)
-            print(f"end_{gen_id}")  
-        counter = Counter(answers)
-        most_common = counter.most_common(1)[0]
-        score = 1 if floats_equal(most_common[0],target,prompt_type) else 0
+            print(f"end_{gen_id}")
+        score = 0  
+        if len(answer) > 0:
+            counter = Counter(answers)
+            most_common = counter.most_common(1)[0]
+            score = 1 if floats_equal(most_common[0],target,prompt_type) else 0
+            answer = most_common[0]
+            results['answer'] = answer
+        else:
+            answer = None
+            results['answer'] = None
         results['score'] = score
         results['target'] = target
-        results['answer'] = most_common[0]
         results['answers'] = answers
+        results['token'] = sum(token_num) / len(token_num)
         # results['gens'] = gens
-        print(f'answer = {most_common[0]}, score = {score}')
+        print(f'answer = {answer}, score = {score}')
     return results
 
 
@@ -218,7 +256,7 @@ def main(
     elif DATA_PATH.endswith('.json'):
         examples = json.load(open(DATA_PATH))['examples']
 
-    OUTPUT_PATH = f'tools/outputs/{dataset}/{dataset}_{early_exit_thres}_{max_gens}_{label}.jsonl'
+    OUTPUT_PATH = f'tools/outputs/{dataset}/{dataset}_{prompt_type}_{early_exit_thres}_{max_gens}_{label}.jsonl'
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     
     scores = []

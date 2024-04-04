@@ -614,6 +614,7 @@ def generate_with_pipelined_early_exit_and_return_on_first_stage(
             prev_context_length = context_length
             inference_params.is_first_step = False
 
+            # Check if all the sequences have hit the termination_id
             done = torch.tensor(False, device='cuda:0')
             if mpu.is_pipeline_first_stage():
                 # print(f'token:{tokens[0, context_length-2:context_length+1]}')

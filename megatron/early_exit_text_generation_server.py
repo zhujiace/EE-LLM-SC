@@ -41,7 +41,7 @@ class MegatronGenerate(Resource):
     async def generate(self, req):
         MegatronGenerate.send_do_generate()  # Tell other ranks we're doing generate
         start_time = time.time()
-        response, response_seg, response_logprobs, _ = \
+        response, response_seg, response_logprobs, _, lengths = \
             generate_and_post_process(
             self.model,                             
             prompts=req['prompts'],
@@ -64,12 +64,12 @@ class MegatronGenerate(Resource):
             exit_layers=req['exit_layers'])
         end_time = time.time()
         print(f"Response(use {end_time - start_time}s): " + str(response))
-        # print(response_logprobs)
         return {
             "text": response,
             # "segments": response_seg,
             # "logprobs": response_logprobs,
-            "requst_time": end_time - start_time
+            "requst_time": end_time - start_time,
+            "token": lengths.item()
             }
 
     def put(self):
