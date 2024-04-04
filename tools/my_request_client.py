@@ -163,6 +163,7 @@ def request(
     gens = []
     answers = []
     token_num = []
+    latency = []
     length = len(prompts)
     for i in range(length):
         for gen_id in range(max_gens):
@@ -198,6 +199,7 @@ def request(
                 # print(result)
                 text = result['text'][0]
                 token_num.append(result['token'])
+                latency.append(end_time - start_time)
                 if prompt_type=="COT":
                     answer = extract_answer(text)
                 elif prompt_type=="PAL":
@@ -227,7 +229,10 @@ def request(
         results['score'] = score
         results['target'] = target
         results['answers'] = answers
-        results['token'] = sum(token_num) / len(token_num)
+        results['avg_token'] = sum(token_num) / len(token_num)
+        results['token'] = token_num
+        results['avg_latency'] = sum(latency) / len(latency)
+        results['latency'] = latency
         # results['gens'] = gens
         print(f'answer = {answer}, score = {score}')
     return results
@@ -264,7 +269,7 @@ def main(
     print("start")
     with open(OUTPUT_PATH, 'w') as f:
         # pbar = tqdm.tqdm(examples[0:2], initial=0, total=len(examples))
-        pbar = TqdmPrintWrapper(examples[:], total=len(examples))
+        pbar = TqdmPrintWrapper(examples[0:5], total=len(examples))
         for x in pbar:
             prompts = []
             question = x['input']
@@ -309,6 +314,6 @@ if __name__ == "__main__":
         print_max_prob=False,
         exit_layers=[],
         no_log=True,
-        max_gens = 20,
+        max_gens = 10,
         label = "llama"
     )
