@@ -115,7 +115,7 @@ def safe_execute(code_string: str, keys=None, use_pot=False, maxtime=5):
     
     return ans
 
-def confidence_criteria(answers : list, conf_thresh : int = None):
+def confidence_criteria(answers : list, conf_thresh=1.0):
     if len(answers) == 0:
         return {
         'most_common' : None,
@@ -165,6 +165,9 @@ def request(
     token_num = []
     latency = []
     length = len(prompts)
+    thres = early_exit_thres
+    thres_list = []
+    confidence_list = []
     for i in range(length):
         for gen_id in range(max_gens):
             print(f"\nstart_{gen_id}")      
@@ -177,7 +180,7 @@ def request(
                 "logprobs": True,
                 "random_seed": int(time.time_ns()) % 16384,
                 "echo_prompts": False,
-                "early_exit_thres": early_exit_thres,
+                "early_exit_thres": thres,
                 "exit_layers": exit_layers,
                 "no_log": no_log
             }
@@ -198,8 +201,10 @@ def request(
             try:
                 # print(result)
                 text = result['text'][0]
+                # Save the token and latency
                 token_num.append(result['token'])
                 latency.append(result['requst_time'])
+                # Get the ans and score
                 if prompt_type=="COT":
                     answer = extract_answer(text)
                 elif prompt_type=="PAL":
@@ -207,15 +212,21 @@ def request(
                     answer = safe_execute(code)
                     answer = floatify_ans(answer)
                 print(f"ans = {answer}, target = {target}")
-                # result['answer'] = answer
                 if answer != None and answer != "":
                     answers.append(answer)
-                #confidence = confidence_criteria(answers,1)
-                #print(confidence)
+
             except Exception as e:
                 print(response)
             # gens.append(result)
+            # Control the early_exit_thres
+            thres_list.append(thres)
+            confidence = confidence_criteria(answers,0.95)
+            confidence_list.append(confidence['prob'])
+            if confidence['stop'] and thres > 0.7:
+                thres -= 0.05
+            print(confidence)
             print(f"end_{gen_id}")
+        
         score = 0  
         if len(answer) > 0:
             counter = Counter(answers)
@@ -233,6 +244,8 @@ def request(
         results['token'] = token_num
         results['avg_latency'] = sum(latency) / len(latency)
         results['latency'] = latency
+        results['thres'] = thres_list
+        results['confidence'] = confidence_list
         # results['gens'] = gens
         print(f'answer = {answer}, score = {score}')
     return results
@@ -269,7 +282,7 @@ def main(
     print("start")
     with open(OUTPUT_PATH, 'w') as f:
         # pbar = tqdm.tqdm(examples[0:2], initial=0, total=len(examples))
-        pbar = TqdmPrintWrapper(examples[0:5], total=len(examples))
+        pbar = TqdmPrintWrapper(examples[:], total=len(examples))
         for x in pbar:
             prompts = []
             question = x['input']
@@ -287,7 +300,8 @@ def main(
                         max_gens,
                         target
                         )
-                f.write(json.dumps(result) + ",\n")
+                f.write(json.dumps(result) + "\n")
+                f.flush()
                 score = result['score']
             except Exception as e:
                 score = 0
@@ -301,7 +315,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        dataset="gsm_text",
+        dataset="gsm_sub/gsm_text_368",
         prompt_file="gsm_prompts",
         prompt_type="COT",
         # dataset="gsm",
@@ -309,10 +323,10 @@ if __name__ == "__main__":
         # prompt_type="PAL",
         tokens_to_generate=150,
         use_early_exit=True,
-        early_exit_thres=0.9,
+        early_exit_thres=1.0,
         print_max_prob=False,
         exit_layers=[],
         no_log=True,
-        max_gens = 10,
+        max_gens = 20,
         label = "llama"
     )
