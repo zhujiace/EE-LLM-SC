@@ -315,7 +315,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        dataset="gsm_sub/gsm_text_368",
+        dataset="gsm_text",
         prompt_file="gsm_prompts",
         prompt_type="COT",
         # dataset="gsm",
@@ -327,6 +327,6 @@ if __name__ == "__main__":
         print_max_prob=False,
         exit_layers=[],
         no_log=True,
-        max_gens = 20,
+        max_gens = 40,
         label = "llama"
     )
