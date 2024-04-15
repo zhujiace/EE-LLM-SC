@@ -152,7 +152,10 @@ def request(
     prompt_type="COT",
     tokens_to_generate=100,
     use_early_exit=True,
-    early_exit_thres=0.8,
+    early_exit_thres=1.0,
+    early_exit_thres_step=0.05,
+    early_exit_thres_min=1.0,
+    confidence_thres=1.0, 
     print_max_prob=False,
     exit_layers=[],
     no_log=False,
@@ -220,10 +223,10 @@ def request(
             # gens.append(result)
             # Control the early_exit_thres
             thres_list.append(thres)
-            confidence = confidence_criteria(answers,0.95)
+            confidence = confidence_criteria(answers,confidence_thres)
             confidence_list.append(confidence['prob'])
-            if confidence['stop'] and thres > 0.7:
-                thres -= 0.05
+            if confidence['stop'] and thres > early_exit_thres_min:
+                thres -= early_exit_thres_step
             print(confidence)
             print(f"end_{gen_id}")
         
@@ -255,7 +258,10 @@ def main(
     dataset, 
     tokens_to_generate, 
     use_early_exit, 
-    early_exit_thres, 
+    early_exit_thres,
+    early_exit_thres_step,
+    early_exit_thres_min,
+    confidence_thres, 
     print_max_prob, 
     exit_layers, 
     no_log,
@@ -274,7 +280,7 @@ def main(
     elif DATA_PATH.endswith('.json'):
         examples = json.load(open(DATA_PATH))['examples']
 
-    OUTPUT_PATH = f'tools/outputs/{dataset}/{dataset}_{prompt_type}_{early_exit_thres}_{max_gens}_{label}.jsonl'
+    OUTPUT_PATH = f'tools/outputs/{dataset}/{dataset}_{prompt_type}@{max_gens}_{early_exit_thres}_{early_exit_thres_step}_{early_exit_thres_min}_{confidence_thres}__{label}.jsonl'
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     
     scores = []
@@ -294,6 +300,9 @@ def main(
                         tokens_to_generate, 
                         use_early_exit, 
                         early_exit_thres, 
+                        early_exit_thres_step,
+                        early_exit_thres_min,
+                        confidence_thres, 
                         print_max_prob, 
                         exit_layers,
                         no_log,
@@ -315,7 +324,7 @@ def main(
 
 if __name__ == "__main__":
     main(
-        dataset="gsm_text",
+        dataset="gsm_sub/gsm_text_368",
         prompt_file="gsm_prompts",
         prompt_type="COT",
         # dataset="gsm",
@@ -324,9 +333,12 @@ if __name__ == "__main__":
         tokens_to_generate=150,
         use_early_exit=True,
         early_exit_thres=1.0,
+        early_exit_thres_step = 0.05,
+        early_exit_thres_min = 0.7,
+        confidence_thres = 0.95,
         print_max_prob=False,
         exit_layers=[],
         no_log=True,
-        max_gens = 40,
+        max_gens = 20,
         label = "llama"
     )
